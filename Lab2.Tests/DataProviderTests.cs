@@ -9,19 +9,18 @@ public class DataProviderTests
     [Fact]
     public void ReadAllLines_WhenCalled_ReturnsExpectedData()
     {
-        // Arrange
         var mockDataProvider = new Mock<IDataProvider>(MockBehavior.Strict);
-        var testFilePath = "Tests/test1.txt";
+        var testFilePath = "Tests/test.txt";
         var expectedLines = new[] { "Line 1", "Line 2", "Line 3" };
-        
+
+        mockDataProvider.Setup(dp => dp.FileExists(testFilePath))
+            .Returns(true);
         mockDataProvider.Setup(dp => dp.ReadAllLines(testFilePath))
             .Returns(expectedLines)
             .Verifiable();
         
-        // Act
-        var result = mockDataProvider.Object.ReadAllLines(testFilePath);
+        var result = new DataReader(mockDataProvider.Object).ReadAllLines(testFilePath);
         
-        // Assert
         Assert.Equal(expectedLines, result);
         mockDataProvider.Verify(dp => dp.ReadAllLines(testFilePath), Times.Once);
     }
@@ -29,16 +28,14 @@ public class DataProviderTests
     [Fact]
     public void ReadAllLines_FileNotFound_ThrowsFileNotFoundException()
     {
-        // Arrange
         var mockDataProvider = new Mock<IDataProvider>();
-        var nonExistentFilePath = "Tests/nonexistent.txt";
+        var nonExistentFilePath = "Tests/test.txt";
         
         mockDataProvider.Setup(dp => dp.ReadAllLines(nonExistentFilePath))
             .Throws(new FileNotFoundException($"File not found: {nonExistentFilePath}"));
         
-        // Act & Assert
         var exception = Assert.Throws<FileNotFoundException>(() => 
-            mockDataProvider.Object.ReadAllLines(nonExistentFilePath));
+            new DataReader(mockDataProvider.Object).ReadAllLines(nonExistentFilePath));
         
         Assert.Contains(nonExistentFilePath, exception.Message);
     }
@@ -46,24 +43,18 @@ public class DataProviderTests
     [Fact ]
     public void Methods_CalledInSpecificOrder_VerifiesSequence()
     {
-        // Arrange
         var mockDataProvider = new Mock<IDataProvider>(MockBehavior.Strict);
-        var testFilePath = "Tests/sequence.txt";
+        var testFilePath = "Tests/test.txt";
         var expectedText = "Sample text content";
         
         var sequence = new MockSequence();
         
-        // Setup sequence expectations
         mockDataProvider.InSequence(sequence).Setup(dp => dp.FileExists(testFilePath)).Returns(true);
         mockDataProvider.InSequence(sequence).Setup(dp => dp.ReadAllText(testFilePath)).Returns(expectedText);
 
-        // Act
-        var _sut = new DataReader(mockDataProvider.Object);
-        var result = _sut.ReadAllText(testFilePath);
+        var result = new DataReader(mockDataProvider.Object).ReadAllText(testFilePath);
         
-        // Assert
         mockDataProvider.Verify(dp => dp.ReadAllText(testFilePath), Times.Once);
-        
         Assert.Equal(expectedText, result);
     }
     
@@ -71,24 +62,28 @@ public class DataProviderTests
     public void ReadAllText_MultipleCallsReturnDifferentValues()
     {
         var mockDataProvider = new Mock<IDataProvider>();
-        var filePath = "Tests/changing.txt";
+        var filePath = "Tests/test.txt";
+        var results = new string[] {"First call result", "Second call result", "Third call result"};
         
-        mockDataProvider.SetupSequence(dp => dp.ReadAllText(filePath))
+        mockDataProvider.SetupSequence(dp => dp.ReadLine(filePath, It.IsAny<int>()))
             .Returns("First call result")
             .Returns("Second call result")
             .Returns("Third call result")
-            .Throws(new IOException("Connection lost after three calls"));
+            .Throws(new ArgumentOutOfRangeException("Line number 3 is out of range. File contains 3 lines."));
+
+        var dataReader = new DataReader(mockDataProvider.Object);
         
-        var result1 = mockDataProvider.Object.ReadAllText(filePath);
-        Assert.Equal("First call result", result1);
-        
-        var result2 = mockDataProvider.Object.ReadAllText(filePath);
-        Assert.Equal("Second call result", result2);
-        
-        var result3 = mockDataProvider.Object.ReadAllText(filePath);
-        Assert.Equal("Third call result", result3);
-        
-        var exception = Assert.Throws<IOException>(() => mockDataProvider.Object.ReadAllText(filePath));
-        Assert.Equal("Connection lost after three calls", exception.Message);
+        for (int i = 0; i < 4; i++)
+        {
+            try
+            {
+                var result = dataReader.ReadLine(filePath, i);
+                Assert.Equal(results[i], result);
+            }
+            catch (ArgumentOutOfRangeException e)
+            {
+                Assert.Equal("Line number 3 is out of range. File contains 3 lines.", e.ParamName);
+            }
+        }
     }
 }

@@ -6,6 +6,8 @@ public interface IDataProvider
     
     string ReadAllText(string filePath);
     
+    string ReadLine(string filePath, int lineNumber);
+    
     bool FileExists(string filePath);
     
     InputData ReadInputData(string filePath);

@@ -1,7 +1,7 @@
 ﻿using Lab2;
 
 var mathSolver = new MathSolver();
-var dataProvider = new TxtFileDataProvider();
+var dataReader = new DataReader(new TxtFileDataProvider());
 
 // x^2 * lg(x) - 1 = 0
 // log(x) - 1/x^2=0
@@ -25,14 +25,14 @@ void ProcessFileInput()
     
     try
     {
-        if (!dataProvider.FileExists(filePath))
+        if (!dataReader.FileExists(filePath))
         {
             Console.WriteLine($"File not found: {filePath}");
             ProcessConsoleInput();
             return;
         }
         
-        InputData[] dataSets = dataProvider.ReadMultipleInputData(filePath);
+        InputData[] dataSets = dataReader.ReadMultipleInputData(filePath);
         
         if (dataSets.Length == 0)
         {

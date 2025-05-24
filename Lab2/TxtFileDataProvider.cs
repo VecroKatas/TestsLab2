@@ -31,17 +31,47 @@ public class TxtFileDataProvider : IDataProvider
             throw new FileNotFoundException($"File not found: {filePath}", filePath);
         }
         
-        return ReadAllText(filePath);
+        return File.ReadAllText(filePath);
     }
     
-    public bool FileExists(string filePath)
+    public string ReadLine(string filePath, int lineNumber)
     {
         if (string.IsNullOrWhiteSpace(filePath))
         {
             throw new ArgumentException("File path cannot be null or empty", nameof(filePath));
         }
         
-        return File.Exists(filePath);
+        if (!File.Exists(filePath))
+        {
+            throw new FileNotFoundException($"File not found: {filePath}", filePath);
+        }
+        
+        if (lineNumber < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(lineNumber), "Line number must be non-negative");
+        }
+        
+        string[] lines = File.ReadAllLines(filePath);
+        
+        if (lineNumber >= lines.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(lineNumber), 
+                $"Line number {lineNumber} is out of range. File contains {lines.Length} lines.");
+        }
+        
+        return lines[lineNumber];
+    }
+    
+    public bool FileExists(string filePath)
+    {
+        var fileExists = File.Exists(filePath);
+        
+        if (string.IsNullOrWhiteSpace(filePath) || !fileExists)
+        {
+            throw new FileNotFoundException($"File not found: {filePath}");
+        }
+        
+        return fileExists;
     }
     
     public InputData ReadInputData(string filePath)
