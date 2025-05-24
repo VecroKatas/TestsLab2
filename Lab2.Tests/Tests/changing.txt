@@ -1,0 +1,4 @@
+﻿This file content will be mocked in the test to return different values
+First call result
+Second call result
+Third call result
